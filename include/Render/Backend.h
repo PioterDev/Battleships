@@ -2,6 +2,10 @@
 #pragma once
 //This is a prototype! Not for use in prodution!
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
 #define RENDER_BACKEND_OPENGL 1
 #define RENDER_BACKEND_VULKAN 2
 #define RENDER_BACKEND_DIRECTX 3
