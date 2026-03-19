@@ -1,7 +1,8 @@
-## How to build the projekt
+## How to build the project
 ```bash
-mkdir build
+mkdir build bin
 cc -o b b.c -Ilib
 ./b
-cpp -o b_cpp b.cpp -Ilib
+c++ -o b_cpp b.cpp -Ilib
+./b_cpp
 ```
