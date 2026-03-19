@@ -3,6 +3,8 @@
 
 #include <PCB.h>
 
+#include "gl_fns.h"
+
 #include <stb_image_write.h>
 
 static void Character_none(Character *c, AtlasTextDataByHeight *d) {
