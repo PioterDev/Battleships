@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
             continue;
         }
         if(!strncmp(arg, "--port=", 7)) {
-            port = (uint16_t)strtoul(arg, NULL, 10);
+            port = (uint16_t)strtoul(arg + 7, NULL, 10);
         }
     }
     PCB_ShellCommand_append_args(&rebuild_mainUI.cmd, "./b", "--target=MainUI");
