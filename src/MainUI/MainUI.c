@@ -829,6 +829,18 @@ static void draw_board_edit(UI *ui) {
                 .padding = CLAY_PADDING_ALL(8),
                 .childAlignment = Clay_childAlignment_center(),
             };
+            CLAY(CLAY_ID("BoardEdit_Button_unselect"), {
+                .layout = lCfg,
+                .backgroundColor = (hovered = Clay_Hovered())
+                    ? CLAY_DEFAULT_BUTTON_COLOR_HOVERED
+                    : CLAY_DEFAULT_BUTTON_COLOR
+            }) {
+                CLAY_TEXT(CLAY_STRING("Unselect tile"), CLAY_DEFAULT_TEXT_CONFIG());
+                if(left_clicked(ui) && hovered) {
+                    Battleships_Board *board = &b->boards.own;
+                    board->x = board->y = -1;
+                }
+            }
             CLAY(CLAY_ID("BoardEdit_Button_clear"), {
                 .layout = lCfg,
                 .backgroundColor = (hovered = Clay_Hovered())
