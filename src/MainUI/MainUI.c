@@ -188,9 +188,10 @@ static void Battleships_Board_destroy(Battleships_Board *b) {
 
 typedef struct {
     const char *server_addr;
+    uint16_t server_port;
+    int server_fd;
     PCB_String recv_buf;
     Lobby_Entries lobby;
-    int server_fd;
     Battleships_Status status;
     struct {
         Battleships_Board own, enemy;
@@ -273,7 +274,7 @@ static Clay_Dimensions measure_text(
 
 #define Clay_StringSlice_2_PCB_StringView(ss) { ss.chars, (uint32_t)ss.length }
 
-bool MainUI_init(UI *ui, Renderer *r, const char *server) {
+bool MainUI_init(UI *ui, Renderer *r, const char *server, uint16_t port) {
     const uint32_t S = Clay_MinMemorySize();
     PCB_log(PCB_LOGLEVEL_INFO, "clay_memsize = %u", S);
 
@@ -292,6 +293,7 @@ bool MainUI_init(UI *ui, Renderer *r, const char *server) {
     ctx->r = r;
     if(server == NULL) server = "127.0.0.1"; //default to localhost
     ctx->battleships.server_addr = server;
+    ctx->battleships.server_port = port;
 
     Clay_Arena a = Clay_CreateArenaWithCapacityAndMemory(S, buf);
     ui->ctx = Clay_Initialize(
@@ -404,7 +406,7 @@ static Clay_String alloc_clay_string(PCB_Arena *arena, const char *fmt, ...) {
 }
 
 static bool connect_battleships_server(MainUI_Context *ctx) {
-    uint16_t port = 1101;
+    uint16_t port = ctx->battleships.server_port;
     if(ctx->battleships.server_fd >= 0) {
         PCB_log(PCB_LOGLEVEL_WARN, "Already connected!");
         return true;

@@ -252,6 +252,7 @@ static bool UI_maybe_update_env(UI *ui, Mouse_State *ms) {
 int main(int argc, char **argv) {
     const char *font_path = NULL;
     const char *server = NULL;
+    uint16_t port = 1101;
     for(int i = 1; i < argc; i++) {
         char *arg = argv[i];
         if(!strncmp(arg, "--font=", 7)) {
@@ -261,6 +262,9 @@ int main(int argc, char **argv) {
         if(!strncmp(arg, "--server=", 9)) {
             server = arg + 9;
             continue;
+        }
+        if(!strncmp(arg, "--port=", 7)) {
+            port = (uint16_t)strtoul(arg, NULL, 10);
         }
     }
     PCB_ShellCommand_append_args(&rebuild_mainUI.cmd, "./b", "--target=MainUI");
@@ -323,7 +327,7 @@ int main(int argc, char **argv) {
     mainUI.env.viewport.h = window_h;
 
     // if(!MainUI_init(&mainUI, arena, &r)) {
-    if(!mainUI_dll.init(&mainUI, &r, server)) {
+    if(!mainUI_dll.init(&mainUI, &r, server, port)) {
         PCB_log(PCB_LOGLEVEL_ERROR, "Failed to initialize the main UI");
         result = COUNTER; goto mainUI_unload_dll;
     }

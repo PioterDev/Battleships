@@ -10,13 +10,13 @@
 extern "C" {
 #endif
 
-typedef bool (*MainUI_init_pfn)(UI *ui, Renderer *r, const char *server);
+typedef bool (*MainUI_init_pfn)(UI *ui, Renderer *r, const char *server, uint16_t port);
 typedef void (*MainUI_update_pfn)(UI *ui);
 typedef void (*MainUI_destroy_pfn)(UI *ui);
 typedef void (*MainUI_prereload_pfn)(UI *ui);
 typedef void (*MainUI_postreload_pfn)(UI *ui);
 
-bool MainUI_init(UI *ui, Renderer *r, const char *server);
+bool MainUI_init(UI *ui, Renderer *r, const char *server, uint16_t port);
 void MainUI_update(UI *ui);
 void MainUI_destroy(UI *ui);
 void MainUI_prereload(UI *ui);
