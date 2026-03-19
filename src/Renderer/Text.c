@@ -1,7 +1,7 @@
 //Copyright (c) 2026 Piotr Mikołajewski
 #include "Render/Text.h"
 
-#include "gl_fns.h"
+#include <PCB.h>
 
 #include <stb_image_write.h>
 
