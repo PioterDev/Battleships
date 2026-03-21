@@ -284,27 +284,33 @@ bool MainUI_init(UI *ui, Renderer *r, const char *server, uint16_t port) {
     void *buf = PCB_Arena_alloc(arena, S);
     assert(buf != NULL);
 
-    MainUI_Context *ctx = (MainUI_Context*)PCB_Arena_alloc(arena, sizeof(*ctx));
+    MainUI_Context *ctx = PCB_Arena_alloc(arena, sizeof(*ctx));
     assert(ctx != NULL);
-    PCB_ArenaMark *mark = PCB_Arena_mark(arena);
-    assert(mark != NULL);
     ctx->arena = arena;
-    ctx->mark = mark;
     ctx->r = r;
-    if(server == NULL) server = "127.0.0.1"; //default to localhost
+    //Default to localhost.
+    //This needs to live in dynamic memory, otherwise trying to connect after
+    //reloading will segfault.
+    //UI state outlives plugin's static memory (Rust would get a seizure).
+    if(server == NULL) server = PCB_Arena_strdup(arena, "127.0.0.1");
+    assert(server != NULL);
     ctx->battleships.server_addr = server;
     ctx->battleships.server_port = port;
 
     Clay_Arena a = Clay_CreateArenaWithCapacityAndMemory(S, buf);
     ui->ctx = Clay_Initialize(
         a,
-        PCB_CLITERAL(Clay_Dimensions){ui->env.viewport.w, ui->env.viewport.h},
-        PCB_CLITERAL(Clay_ErrorHandler){ .errorHandlerFunction = handle_clay_error }
+        (Clay_Dimensions){ui->env.viewport.w, ui->env.viewport.h},
+        (Clay_ErrorHandler){ .errorHandlerFunction = handle_clay_error }
     );
     Clay_SetMeasureTextFunction(measure_text, ui);
     if(!PCB_String_reserve_to(&ctx->status_str, 16*1024)) goto error_arena;
     ui->user_data = ctx;
     ctx->battleships.server_fd = -1;
+
+    PCB_ArenaMark *mark = PCB_Arena_mark(arena);
+    assert(mark != NULL);
+    ctx->mark = mark;
     return true;
 error_arena:
     PCB_Arena_destroy(arena);
