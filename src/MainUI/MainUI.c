@@ -321,9 +321,17 @@ void MainUI_postreload(UI *ui) {
     Clay_SetMeasureTextFunction(measure_text, ui);
 }
 
+//0 -> left
+//1 -> middle
+//2 -> right
 static inline bool left_clicked(UI *ui) {
     return (ui->env.mouse_btn_state & (1 << 0)) == 0 &&
            (ui->env.mouse_btn_state_previous & (1 << 0)) != 0;
+}
+
+static inline bool right_clicked(UI *ui) {
+    return (ui->env.mouse_btn_state & (1 << 2)) == 0 &&
+           (ui->env.mouse_btn_state_previous & (1 << 2)) != 0;
 }
 
 static void render_clay_rect(MainUI_Context *ctx, Clay_RenderCommand *cmd) {
@@ -464,13 +472,14 @@ static void disconnect_battleships_server(MainUI_Context *ctx) {
 }
 
 static void tile_hover_edit(UI *ui, size_t y, size_t x) {
-    if(!left_clicked(ui)) return;
+    bool left = left_clicked(ui), right = right_clicked(ui);
+    if(!left && !right) return;
     MainUI_Context *ctx = ui->user_data;
     Battleships_Context *b = &ctx->battleships;
     Battleships_Board *board = &b->boards.own;
     if(board->data[y].data[x] != BATTLESHIPS_BOARD_TILE_EMPTY) return;
     if(board->ship_size == 0) return;
-    if(board->x < 0 || board->y < 0) {
+    if((board->x < 0 || board->y < 0) && left) {
         board->x = (int32_t)(uint32_t)x;
         board->y = (int32_t)(uint32_t)y;
         PCB_log(PCB_LOGLEVEL_DEBUG, "Selected tile (%zu, %zu)", x, y);
@@ -496,17 +505,20 @@ static void tile_hover_edit(UI *ui, size_t y, size_t x) {
     );
     int32_t dx = (int32_t)(ssize_t)x - board->x,
             dy = (int32_t)(ssize_t)y - board->y;
-    if(dx != 0 && dy != 0) {
-        PCB_log(PCB_LOGLEVEL_WARN, "Cannot put ship on a diagonal! (%d %d)", dx, dy);
-        return;
-    }
     if(dx == 0 && dy == 0) {
+        if(right) {
+            board->x = board->y = -1;
+            return;
+        }
         if(board->ship_size != 1) return;
         //NOTE: Server uses column major, we use row major
         char *msg = PCB_Arena_asprintf(ctx->arena, "%d %d 1 0\n", board->x, board->y);
         assert(msg != NULL);
         write(b->server_fd, msg, strlen(msg));
         goto end;
+    } else if(dx != 0 && dy != 0) {
+        PCB_log(PCB_LOGLEVEL_WARN, "Cannot put ship on a diagonal! (%d %d)", dx, dy);
+        return;
     }
     uint32_t len = (uint32_t)(dx == 0 ? (dy < 0 ? -dy : dy) : (dx < 0 ? -dx : dx));
     if(board->ship_size != len+1) {
@@ -829,18 +841,6 @@ static void draw_board_edit(UI *ui) {
                 .padding = CLAY_PADDING_ALL(8),
                 .childAlignment = Clay_childAlignment_center(),
             };
-            CLAY(CLAY_ID("BoardEdit_Button_unselect"), {
-                .layout = lCfg,
-                .backgroundColor = (hovered = Clay_Hovered())
-                    ? CLAY_DEFAULT_BUTTON_COLOR_HOVERED
-                    : CLAY_DEFAULT_BUTTON_COLOR
-            }) {
-                CLAY_TEXT(CLAY_STRING("Unselect tile"), CLAY_DEFAULT_TEXT_CONFIG());
-                if(left_clicked(ui) && hovered) {
-                    Battleships_Board *board = &b->boards.own;
-                    board->x = board->y = -1;
-                }
-            }
             CLAY(CLAY_ID("BoardEdit_Button_clear"), {
                 .layout = lCfg,
                 .backgroundColor = (hovered = Clay_Hovered())
