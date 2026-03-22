@@ -562,7 +562,7 @@ static void client_disconnect(std::vector<Client>& Clients, std::vector<Game>& G
 }
 
 
-int main()
+int main(int argc, char** argv)
 {
     //Connection variables
     struct sockaddr_in address;
@@ -579,11 +579,20 @@ int main()
 
     int server = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
 
+    int port = argc > 1 ? atoi(argv[1]) : 1101;
+    if(port == 0) {
+        std::cerr << "Invalid port number provided (" << argv[1] << ")\n";
+        return 1;
+    }
     address.sin_family = AF_INET;
-    address.sin_port = htons(1101);
+    address.sin_port = htons(port);
     address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    bind(server,(struct sockaddr*)&address,sizeof address);
+    if(bind(server,(struct sockaddr*)&address,sizeof address) < 0) {
+        std::cerr << "Failed to bind: " << strerror(errno) << "\n";
+        return 1;
+    }
+    std::cout << "Listening on port " << port << "...\n";
 
     //Epoll setup
     event.events = EPOLLIN;
