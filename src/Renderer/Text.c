@@ -295,6 +295,19 @@ ssize_t AtlasText_queryHeight(AtlasText *a, uint32_t h) {
     return -2;
 }
 
+ssize_t AtlasText_queryHeight_gte(AtlasText *a, uint32_t h) {
+    PCB_CHECK_SELF(a, -1);
+    ssize_t closest = -2;
+    PCB_Vec_enumerate(&a->data, i, v, it, AtlasTextDataByHeight) {
+        if(it.v->fontHeight < h) continue;
+        if(closest < 0) { closest = (ssize_t)it.i; continue; }
+        int32_t diff_cur = (int32_t)a->data.data[closest].fontHeight - (int32_t)h,
+                diff     = (int32_t)it.v->fontHeight - (int32_t)h;
+        if(diff < diff_cur) closest = (ssize_t)it.i;
+    }
+    return closest;
+}
+
 ssize_t AtlasText_addHeight(AtlasText *a, uint32_t h) {
     PCB_CHECK_SELF(a, -1);
     PCB_Vec_enumerate(&a->data, i, v, it, AtlasTextDataByHeight) {

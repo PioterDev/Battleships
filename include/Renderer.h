@@ -8,8 +8,6 @@
 #include "Render/Backend.h"
 #include "Render/Text.h"
 
-#define FONT_SIZE 32
-
 PCB_Enum(Renderer_Command_Type, uint32_t) {
     RENDERER_COMMAND_NONE,
     RENDERER_COMMAND_RECT,

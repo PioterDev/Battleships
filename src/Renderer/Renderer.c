@@ -306,52 +306,8 @@ bool Renderer_init(Renderer *r, int window_width, int window_height, FT_Face fon
     GL(glBindVertexArray(0));
 #endif
 
-
     AtlasText *a = &r->fontAtlas;
     if(AtlasText_init(a, font, 512, 512) != 0) return false;
-    ssize_t hIdx = AtlasText_addHeight(a, FONT_SIZE);
-    PCB_assert(hIdx >= 0);
-    PCB_ShellCommand cmd = PCB_ZEROED;
-    const char *atlas_dump = "build/atlas.png";
-    PCB_ShellCommand_append_args(&cmd, "gwenview", atlas_dump);
-    for(uint32_t cpp = 32; cpp <= 126; cpp++) {
-        // if(cpp % 10 == 0) {
-        //     AtlasText_dump(a, atlas_dump);
-        //     PCB_ShellCommand_runAndWait(&cmd);
-        // }
-        // PCB_log(PCB_LOGLEVEL_DEBUG, PCB_LOC": Adding U+%X to atlas", cpp);
-        PCB_assert(AtlasText_addCodepoint(a, hIdx, cpp));
-    }
-#if 0
-    static const uint32_t UNICODE_POLISH_CHARS[] = {
-        0x0105, //ą
-        0x0104, //Ą
-        0x0107, //ć
-        0x0106, //Ć
-        0x0119, //ę
-        0x0118, //Ę
-        0x0142, //ł
-        0x0141, //Ł
-        0x0144, //ń
-        0x0143, //Ń
-        0x00f3, //ó
-        0x00d3, //Ó
-        0x015b, //ś
-        0x015a, //Ś
-        0x017a, //ź
-        0x0179, //Ź
-        0x017c, //ż
-        0x017b, //Ż
-    };
-    PCB_Arr_forEach_it(UNICODE_POLISH_CHARS, c) {
-        PCB_log(PCB_LOGLEVEL_DEBUG, PCB_LOC": Adding %u to atlas", *c);
-        PCB_assert(AtlasText_addCodepoint(a, hIdx, *c));
-    }
-#endif
-
-    // AtlasText_dump(a, atlas_dump);
-    // PCB_ShellCommand_runAndWait(&cmd);
-    PCB_Vec_destroy(&cmd);
 
     return true;
 }
@@ -434,9 +390,11 @@ void Renderer_draw_rect(Renderer *r, Vec4 rect, Vec4 c) {
     GL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 }
 
-static void Renderer__draw_character(Renderer *r, const Character *c, Vec2 pos) {
-    const Vec2 bearing = Vec2_ss((float)c->bearing.x, -(float)c->bearing.y);
-    const Vec2 size = Vec2_ss((float)c->width, (float)c->height);
+static void Renderer__draw_character(
+    Renderer *r, const Character *c, Vec2 pos, float rescale
+) {
+    const Vec2 bearing = Vec2_muls(Vec2_ss((float)c->bearing.x, -(float)c->bearing.y), rescale);
+    const Vec2 size = Vec2_muls(Vec2_ss((float)c->width, (float)c->height), rescale);
     const Vec2 ul = Vec2_add(pos, bearing);
 #ifndef TEST
     const float vertices[] = {
@@ -475,7 +433,7 @@ bool Renderer_draw_text(
     Vec4 color,
     Renderer_TextDrawEx *ex
 ) {
-    ssize_t hIdx = AtlasText_queryHeight(&r->fontAtlas, h);
+    ssize_t hIdx = AtlasText_queryHeight_gte(&r->fontAtlas, h);
     if(hIdx < 0) {
         hIdx = AtlasText_addHeight(&r->fontAtlas, h);
         if(hIdx < 0) {
@@ -499,9 +457,10 @@ bool Renderer_draw_text(
 #endif
 
     const Character *c = &d->cpData[0];
-    const float linespace = (float)(d->linespace/64) + (float)(d->linespace%64)/64.0f;
-    const float ascent = (float)(d->ascent/64) + (float)(d->ascent%64)/64.0f;
-    const float descent = (float)(d->descent/64) + (float)(d->descent%64)/64.0f;
+    const float rescale = (float)h/(float)d->fontHeight;
+    const float linespace = FROM_26_6(d->linespace) * rescale;
+    const float ascent    = FROM_26_6(d->ascent)    * rescale;
+    const float descent   = FROM_26_6(d->descent)   * rescale;
 #if 0
     PCB_log(PCB_LOGLEVEL_DEBUG, PCB_LOC":%s: text = %.*s", __func__, (int)text.length, text.data);
     PCB_log(PCB_LOGLEVEL_DEBUG, PCB_LOC":%s: pos = (%f, %f)", __func__, pos.x, pos.y);
@@ -574,8 +533,8 @@ bool Renderer_draw_text(
             // PCB_log(PCB_LOGLEVEL_WARN, "U+%X not in atlas!", cp_);
         }
     draw_char:
-        Renderer__draw_character(r, c, Vec2_ss(x, pos.y));
-        x += (float)(c->advance.x/64) + (float)(c->advance.x%64)/64.0f;
+        Renderer__draw_character(r, c, Vec2_ss(x, pos.y), rescale);
+        x += FROM_26_6(c->advance.x)*rescale;
         if(d->cps[L] == cp_) c = &d->cpData[0];
     }
 

@@ -60,6 +60,11 @@ LACAPI Vec2 Vec2_sub(Vec2 v1, Vec2 v2) { return (Vec2){ .data = {v1.x - v2.x, v1
 LACAPI Vec2 Vec2_mul(Vec2 v1, Vec2 v2) { return (Vec2){ .data = {v1.x * v2.x, v1.y * v2.y} }; }
 LACAPI Vec2 Vec2_div(Vec2 v1, Vec2 v2) { return (Vec2){ .data = {v1.x / v2.x, v1.y / v2.y} }; }
 
+LACAPI Vec2 Vec2_adds(Vec2 v, float s) { return (Vec2){ .data = {v.x + s, v.y + s} }; }
+LACAPI Vec2 Vec2_subs(Vec2 v, float s) { return (Vec2){ .data = {v.x - s, v.y - s} }; }
+LACAPI Vec2 Vec2_muls(Vec2 v, float s) { return (Vec2){ .data = {v.x * s, v.y * s} }; }
+LACAPI Vec2 Vec2_divs(Vec2 v, float s) { return (Vec2){ .data = {v.x / s, v.y / s} }; }
+
 LACAPI Vec3 Vec3_s(float s) { return (Vec3){.data = {s, s, s} }; }
 LACAPI Vec3 Vec3_ss(float x, float y, float z) { return (Vec3){ .data = {x, y, z} }; }
 

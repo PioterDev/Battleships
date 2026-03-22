@@ -2,6 +2,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -9,6 +10,8 @@
 #include <lac.h>
 
 #include "Backend.h"
+
+#define FROM_26_6(v) ((float)((v)/64) + (float)((v)%64)/64.0f)
 
 typedef struct { //@sa https://freetype.org/freetype2/docs/glyphs/glyphs-3.html
     uint32_t width, height;
@@ -117,6 +120,9 @@ void AtlasText_destroy(AtlasText *a);
 //Returns an index to `a->data` with the appropiate `AtlasTextDataByHeight`
 //structure or negative if not found.
 ssize_t AtlasText_queryHeight(AtlasText *a, uint32_t h);
+//Returns an index to a `AtlasTextDataByHeight` structure whose font height is
+//closest to `h`, but not smaller, or negative if not found.
+ssize_t AtlasText_queryHeight_gte(AtlasText *a, uint32_t h);
 //Returns an index to `a->data` with the appropiate `AtlasTextDataByHeight`,
 //creating it if necessary or
 //-2 if initializing storage for the height failed,

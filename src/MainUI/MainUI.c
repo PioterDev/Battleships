@@ -29,7 +29,8 @@
 #define CLAY_DEFAULT_BUTTON_COLOR PCB_CLITERAL(Clay_Color){150, 150, 150, 255}
 #define CLAY_DEFAULT_BUTTON_COLOR_HOVERED PCB_CLITERAL(Clay_Color){100, 100, 100, 255}
 
-#define CLAY_DEFAULT_TEXT_CONFIG() CLAY_TEXT_CONFIG({.fontSize = 20, .textColor = CLAY_WHITE})
+#define DEFAULT_FONT_SIZE 20
+#define CLAY_DEFAULT_TEXT_CONFIG() CLAY_TEXT_CONFIG({.fontSize = DEFAULT_FONT_SIZE, .textColor = CLAY_WHITE})
 
 #define CLAY_WHITE   PCB_CLITERAL(Clay_Color){255, 255, 255, 255}
 #define CLAY_GREEN   PCB_CLITERAL(Clay_Color){0,   255, 0,   255}
@@ -274,6 +275,53 @@ static Clay_Dimensions measure_text(
 
 #define Clay_StringSlice_2_PCB_StringView(ss) { ss.chars, (uint32_t)ss.length }
 
+static bool init_atlas(AtlasText *a) {
+    ssize_t hIdx = AtlasText_addHeight(a, DEFAULT_FONT_SIZE);
+    if(hIdx < 0) return false;
+    PCB_ShellCommand cmd = PCB_ZEROED;
+    const char *atlas_dump = "build/atlas.png";
+    PCB_ShellCommand_append_args(&cmd, "gwenview", atlas_dump);
+    for(uint32_t cpp = 32; cpp <= 126; cpp++) {
+        // if(cpp % 10 == 0) {
+        //     AtlasText_dump(a, atlas_dump);
+        //     PCB_ShellCommand_runAndWait(&cmd);
+        // }
+        // PCB_log(PCB_LOGLEVEL_DEBUG, PCB_LOC": Adding U+%X to atlas", cpp);
+        if(!AtlasText_addCodepoint(a, hIdx, cpp)) return false;
+    }
+#if 0
+    static const uint32_t UNICODE_POLISH_CHARS[] = {
+        0x0105, //ą
+        0x0104, //Ą
+        0x0107, //ć
+        0x0106, //Ć
+        0x0119, //ę
+        0x0118, //Ę
+        0x0142, //ł
+        0x0141, //Ł
+        0x0144, //ń
+        0x0143, //Ń
+        0x00f3, //ó
+        0x00d3, //Ó
+        0x015b, //ś
+        0x015a, //Ś
+        0x017a, //ź
+        0x0179, //Ź
+        0x017c, //ż
+        0x017b, //Ż
+    };
+    PCB_Arr_forEach_it(UNICODE_POLISH_CHARS, c) {
+        PCB_log(PCB_LOGLEVEL_DEBUG, PCB_LOC": Adding %u to atlas", *c);
+        if(!AtlasText_addCodepoint(a, hIdx, *c)) return false;
+    }
+#endif
+    // AtlasText_dump(a, atlas_dump);
+    // PCB_ShellCommand_runAndWait(&cmd);
+    PCB_Vec_destroy(&cmd);
+
+    return true;
+}
+
 bool MainUI_init(UI *ui, Renderer *r, const char *server, uint16_t port) {
     const uint32_t S = Clay_MinMemorySize();
     PCB_log(PCB_LOGLEVEL_INFO, "clay_memsize = %u", S);
@@ -307,6 +355,8 @@ bool MainUI_init(UI *ui, Renderer *r, const char *server, uint16_t port) {
     if(!PCB_String_reserve_to(&ctx->status_str, 16*1024)) goto error_arena;
     ui->user_data = ctx;
     ctx->battleships.server_fd = -1;
+
+    assert(init_atlas(&r->fontAtlas));
 
     PCB_ArenaMark *mark = PCB_Arena_mark(arena);
     assert(mark != NULL);
@@ -1474,7 +1524,11 @@ static Clay_Dimensions measure_text(
     AtlasText *a = &ctx->r->fontAtlas;
     Clay_Dimensions dims = PCB_ZEROED;
 
+#if 1
+    ssize_t hIdx = AtlasText_queryHeight_gte(a, config->fontSize);
+#else
     ssize_t hIdx = AtlasText_queryHeight(a, config->fontSize);
+#endif
     if(hIdx < 0) {
         PCB_log(PCB_LOGLEVEL_INFO, PCB_LOC": Font height %hu not in atlas", config->fontSize);
         hIdx = AtlasText_addHeight(a, config->fontSize);
@@ -1488,7 +1542,8 @@ static Clay_Dimensions measure_text(
         // return dims;
     }
     const AtlasTextDataByHeight *const d = &a->data.data[hIdx];
-    const float linespace = (float)(d->linespace/64) + (float)(d->linespace%64)/64.0f;
+    const float rescale = (float)config->fontSize / (float)d->fontHeight;
+    const float linespace = FROM_26_6(d->linespace)*rescale;
 
     dims.height += linespace;
     float x = 0.0f;
@@ -1554,7 +1609,7 @@ static Clay_Dimensions measure_text(
             // PCB_log(PCB_LOGLEVEL_DEBUG, PCB_LOC": U+%X not found in atlas", cp_);
         }
         Character *c = &d->cpData[L];
-        x += (float)(c->advance.x/64) + (float)(c->advance.x%64)/64.0f;
+        x += FROM_26_6(c->advance.x)*rescale;
     }
     if(x > dims.width) dims.width = x;
 defer:
